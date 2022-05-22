@@ -36,6 +36,8 @@ const insertCharacter = async (userId, name) => {
     user_id: new ObjectId(userId),
     name,
     skills: skillsForCharacter,
+    active_skill: {},
+    last_save: Date.now(),
     inventory: {},
   };
 
