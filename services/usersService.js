@@ -6,7 +6,7 @@ const insertUser = async (user) => {
     `call sp_insertUser(${mysql.escape(user.email)}, ${mysql.escape(
       user.username
     )}, ${mysql.escape(user.password)})`
-  )[0];
+  );
 };
 
 const getUserByIdentifier = async (identifier) => {

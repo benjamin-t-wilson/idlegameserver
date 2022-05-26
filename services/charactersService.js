@@ -60,8 +60,8 @@ const getCharacterInfo = async (id) => {
 
 const insertCharacter = async (userId, name) => {
   return await executeStoredProc(
-    `call sp_insertCharacter(${name}, ${userId})`
-  )[0];
+    `call sp_insertCharacter('${name}', ${userId})`
+  );
 };
 
 const saveCharacter = async (character) => {
@@ -79,19 +79,23 @@ const saveCharacter = async (character) => {
 
   promises.push(
     executeStoredProc(
-      `call sp_updateCharacter(${character._id}, ${character.name}, ${character.last_save})`
+      `call sp_updateCharacter(${character._id}, '${character.name}', ${character.last_save})`
     )
   );
 
   for (let itemName in character.inventory) {
     promises.push(
-      `call sp_updateCharacterInventory(${character.inventory[itemName]._id}, ${character._id}, ${character.inventory[itemName].item_id}, ${character.inventory[itemName].quantity})`
+      executeStoredProc(
+        `call sp_updateCharacterInventory(${character.inventory[itemName]._id}, ${character._id}, ${character.inventory[itemName].item_id}, ${character.inventory[itemName].quantity})`
+      )
     );
   }
 
   for (let skillName in character.skills) {
     promises.push(
-      `call sp_updateCharacterSkills(${character.skills[skillName]._id}, ${character._id}, ${character.skills[skillName].skill_id}, ${character.skills[skillName].xp}, ${character.skills[skillName].lvl})`
+      executeStoredProc(
+        `call sp_updateCharacterSkill(${character.skills[skillName]._id}, ${character._id}, ${character.skills[skillName].skill_id}, ${character.skills[skillName].xp}, ${character.skills[skillName].lvl})`
+      )
     );
   }
 

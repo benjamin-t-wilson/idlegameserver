@@ -20,10 +20,24 @@ router.get("/information/:id", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const { userId, name } = req.body;
-  const characterId = await insertCharacter(userId, name);
-  const newChar = await getCharacter(characterId);
 
-  res.status(200).json(newChar);
+  try {
+    const response = await insertCharacter(userId, name);
+    const characterId = response[0]["LAST_INSERT_ID()"];
+    const charInfo = await getCharacterInfo(characterId);
+
+    return res
+      .status(200)
+      .json({
+        _id: characterId,
+        name,
+        user_id: userId,
+        last_save: null,
+        ...charInfo,
+      });
+  } catch (err) {
+    return res.status(500).json(err.code ? err.code : err);
+  }
 });
 
 router.post("/:id", async (req, res) => {

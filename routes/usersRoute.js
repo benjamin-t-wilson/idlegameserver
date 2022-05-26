@@ -14,9 +14,14 @@ router.post("/register", async (req, res) => {
       .json({ message: "Must have valid username, email, and password" });
   }
 
-  const userId = await insertUser(info);
+  try {
+    const response = await insertUser(info);
+    const userId = response?.[0]?.["LAST_INSERT_ID()"];
 
-  return res.status(200).json(userId.flat()[0]);
+    return res.status(200).json({ userId });
+  } catch (err) {
+    return res.status(500).json(err.code);
+  }
 });
 
 router.post("/login", async (req, res) => {
@@ -30,15 +35,17 @@ router.post("/login", async (req, res) => {
 
   const user = await getUserByIdentifier(creds.login);
 
-  if (!user && !user[0]) {
-    return res.status(401);
+  if (!user || !user[0]) {
+    return res.status(401).json();
   }
 
-  if (
-    user[0] &&
-    decodeString(user[0].password) === decodeString(creds.password)
-  ) {
-    return res.status(200).json(user[0]._id);
+  const dbPw = decodeString(user[0].password) || null;
+  const inputPw = decodeString(creds.password) || null;
+
+  if (dbPw && inputPw && dbPw === inputPw) {
+    return res.status(200).json({ userId: user[0]._id });
+  } else {
+    return res.status(401).json();
   }
 });
 
