@@ -1,19 +1,31 @@
-const { getCollection, getDocument } = require("./mongoDbService.js");
+const mysql = require("mysql2");
+const { executeStoredProc, executeStoredProcs } = require("./mySqlService.js");
 
 const getAllSkills = async () => {
-  const skills = await getCollection("skills");
-
-  return skills;
+  return await executeStoredProc(`call sp_getSkills()`);
 };
 
-const getSkill = async (id) => {
-  const ObjectId = require("mongodb").ObjectId;
-  const skill = await getDocument("skills", { _id: new ObjectId(id) });
+const getSkillMilestones = async (id) => {
+  const results = await executeStoredProcs([
+    `call sp_getSkillsMilestones(${mysql.escape(id)})`,
+    `call sp_getMilestonesDrops(${mysql.escape(id)})`,
+    `call sp_getMilestonesRequires(${mysql.escape(id)})`,
+  ]);
 
-  return skill;
+  const skillInfo = [];
+
+  results[0].forEach((milestone) => {
+    skillInfo.push({
+      ...milestone,
+      drops: results[1].filter((drop) => drop._id == milestone._id),
+      requires: results[2].filter((item) => item._id == milestone._id),
+    });
+  });
+
+  return skillInfo;
 };
 
 module.exports = {
   getAllSkills,
-  getSkill,
+  getSkillMilestones,
 };

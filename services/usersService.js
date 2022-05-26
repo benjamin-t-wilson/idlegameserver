@@ -1,21 +1,21 @@
-const { ObjectId } = require("mongodb");
-const { getDocument, insertDocument } = require("./mongoDbService.js");
+const mysql = require("mysql2");
+const { executeStoredProc } = require("./mySqlService.js");
 
 const insertUser = async (user) => {
-  const userId = await insertDocument("users", user);
-
-  return userId;
+  return await executeStoredProc(
+    `call sp_insertUser(${mysql.escape(user.email)}, ${mysql.escape(
+      user.username
+    )}, ${mysql.escape(user.password)})`
+  )[0];
 };
 
-const getUserByUsername = async (username) => {
-  const user = await getDocument("users", {
-    username: username,
-  });
-
-  return user;
+const getUserByIdentifier = async (identifier) => {
+  return await executeStoredProc(
+    `call sp_getUser(${mysql.escape(identifier)})`
+  );
 };
 
 module.exports = {
   insertUser,
-  getUserByUsername,
+  getUserByIdentifier,
 };

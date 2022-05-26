@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const {
   insertUser,
-  getUserByUsername,
+  getUserByIdentifier,
 } = require("../services/usersService.js");
 const { decodeString } = require("../services/encryptionService.js");
 
@@ -16,7 +16,7 @@ router.post("/register", async (req, res) => {
 
   const userId = await insertUser(info);
 
-  return res.status(200).json(userId);
+  return res.status(200).json(userId.flat()[0]);
 });
 
 router.post("/login", async (req, res) => {
@@ -28,14 +28,17 @@ router.post("/login", async (req, res) => {
       .json({ message: "Must have valid login and password" });
   }
 
-  const user = await getUserByUsername(creds.login);
+  const user = await getUserByIdentifier(creds.login);
 
-  if (!user) {
+  if (!user && !user[0]) {
     return res.status(401);
   }
 
-  if (user && decodeString(user.password) === decodeString(creds.password)) {
-    return res.status(200).json(user._id);
+  if (
+    user[0] &&
+    decodeString(user[0].password) === decodeString(creds.password)
+  ) {
+    return res.status(200).json(user[0]._id);
   }
 });
 

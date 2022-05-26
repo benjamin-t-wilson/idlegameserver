@@ -1,59 +1,108 @@
-const { ObjectId } = require("mongodb");
-const {
-  getCollection,
-  getDocument,
-  insertDocument,
-  updateDocument,
-} = require("./mongoDbService.js");
-const { getAllSkills } = require("./skillsService.js");
+const mysql = require("mysql2");
+const { executeStoredProc, executeStoredProcs } = require("./mySqlService");
+const { getSkillMilestones } = require("./skillsService");
 
 const getAllCharactersForUser = async (id) => {
-  const characters = await getCollection("characters", {
-    user_id: new ObjectId(id),
-  });
+  const characters = await executeStoredProc(
+    `call sp_getCharactersByUser(${mysql.escape(id)})`
+  );
 
   return characters;
 };
 
-const getCharacter = async (id) => {
-  const character = await getDocument("characters", { _id: new ObjectId(id) });
+const getCharacterInfo = async (id) => {
+  const charResults = await executeStoredProcs([
+    `call sp_getCharacterActiveSkill(${mysql.escape(id)})`,
+    `call sp_getCharacterSkills(${mysql.escape(id)})`,
+    `call sp_getCharacterInventory(${mysql.escape(id)})`,
+  ]);
 
-  return character;
+  const charActiveSkillRes = charResults[0][0];
+  const skills = charResults[1];
+  const inventory = charResults[2];
+
+  const milestones = charActiveSkillRes
+    ? await getSkillMilestones(charActiveSkillRes.skill_id)
+    : null;
+
+  const charInfo = {
+    active_skill: charActiveSkillRes
+      ? {
+          _id: charActiveSkillRes._id,
+          skill_id: charActiveSkillRes.skill_id,
+          skill: charActiveSkillRes.name,
+          node: milestones.filter(
+            (node) => node.id == charActiveSkillRes.milestone_id
+          )[0],
+        }
+      : null,
+    skills: Object.fromEntries(
+      skills.map((skill) => [
+        skill.s_name,
+        {
+          _id: skill.cs_id,
+          xp: skill.xp,
+          lvl: skill.lvl,
+          skill_id: skill.s_id,
+        },
+      ])
+    ),
+    inventory: Object.fromEntries(
+      inventory.map((item) => [
+        item.name,
+        { item_id: item.item_id, _id: item._id, quantity: item.quantity },
+      ])
+    ),
+  };
+
+  return charInfo;
 };
 
 const insertCharacter = async (userId, name) => {
-  const rawSkills = await getAllSkills();
-  let skillsForCharacter = {};
-
-  rawSkills.forEach((skill) => {
-    skillsForCharacter[skill.name] = {
-      lvl: 1,
-      xp: 0,
-    };
-  });
-
-  const newChar = {
-    user_id: new ObjectId(userId),
-    name,
-    skills: skillsForCharacter,
-    active_skill: {},
-    last_save: Date.now(),
-    inventory: {},
-  };
-
-  return await insertDocument("characters", newChar);
+  return await executeStoredProc(
+    `call sp_insertCharacter(${name}, ${userId})`
+  )[0];
 };
 
 const saveCharacter = async (character) => {
-  character.last_save = Date.now();
-  delete character.user_id;
+  let promises = [];
+  if (
+    character.active_skill &&
+    Object.keys(character.active_skill).length > 0
+  ) {
+    promises.push(
+      executeStoredProc(
+        `call sp_updateCharacterActiveSkill(${character.active_skill._id}, ${character.active_skill.skill_id}, ${character.active_skill.node._id})`
+      )
+    );
+  }
 
-  return await updateDocument("characters", character);
+  promises.push(
+    executeStoredProc(
+      `call sp_updateCharacter(${character._id}, ${character.name}, ${character.last_save})`
+    )
+  );
+
+  for (let itemName in character.inventory) {
+    promises.push(
+      `call sp_updateCharacterInventory(${character.inventory[itemName]._id}, ${character._id}, ${character.inventory[itemName].item_id}, ${character.inventory[itemName].quantity})`
+    );
+  }
+
+  for (let skillName in character.skills) {
+    promises.push(
+      `call sp_updateCharacterSkills(${character.skills[skillName]._id}, ${character._id}, ${character.skills[skillName].skill_id}, ${character.skills[skillName].xp}, ${character.skills[skillName].lvl})`
+    );
+  }
+
+  await Promise.all(promises);
+
+  return true;
 };
 
 module.exports = {
   getAllCharactersForUser,
-  getCharacter,
+  getCharacterInfo,
   insertCharacter,
   saveCharacter,
 };

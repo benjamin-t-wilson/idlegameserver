@@ -1,5 +1,8 @@
 const router = require("express").Router();
-const { getAllSkills, getSkill } = require("../services/skillsService.js");
+const {
+  getAllSkills,
+  getSkillMilestones,
+} = require("../services/skillsService.js");
 
 router.get("/", async (req, res) => {
   const skills = await getAllSkills();
@@ -8,9 +11,9 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/:id", async (req, res) => {
-  const skills = await getSkill(req.params.id);
+  const milestones = await getSkillMilestones(req.params.id);
 
-  return res.status(200).json(skills);
+  return res.status(200).json(milestones);
 });
 
 module.exports = router;

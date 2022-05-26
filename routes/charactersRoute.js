@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const {
   getAllCharactersForUser,
-  getCharacter,
+  getCharacterInfo,
   insertCharacter,
   saveCharacter,
 } = require("../services/charactersService.js");
@@ -12,8 +12,8 @@ router.get("/all/:id", async (req, res) => {
   return res.status(200).json(characters);
 });
 
-router.get("/single/:id", async (req, res) => {
-  const character = await getCharacter(req.params.id);
+router.get("/information/:id", async (req, res) => {
+  const character = await getCharacterInfo(req.params.id);
 
   return res.status(200).json(character);
 });
