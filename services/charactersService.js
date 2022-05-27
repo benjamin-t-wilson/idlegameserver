@@ -32,7 +32,7 @@ const getCharacterInfo = async (id) => {
           skill_id: charActiveSkillRes.skill_id,
           skill: charActiveSkillRes.name,
           node: milestones.filter(
-            (node) => node.id == charActiveSkillRes.milestone_id
+            (node) => node._id == charActiveSkillRes.milestone_id
           )[0],
         }
       : null,
@@ -72,14 +72,16 @@ const saveCharacter = async (character) => {
   ) {
     promises.push(
       executeStoredProc(
-        `call sp_updateCharacterActiveSkill(${character.active_skill._id}, ${character.active_skill.skill_id}, ${character.active_skill.node._id})`
+        `call sp_updateCharacterActiveSkill(${character._id}, ${character.active_skill.node.skill_id}, ${character.active_skill.node._id})`
       )
     );
   }
 
   promises.push(
     executeStoredProc(
-      `call sp_updateCharacter(${character._id}, '${character.name}', ${character.last_save})`
+      `call sp_updateCharacter(${character._id}, '${
+        character.name
+      }', ${Date.now()})`
     )
   );
 
