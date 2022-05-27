@@ -2,10 +2,10 @@ const mysql = require("mysql2/promise");
 
 const createDbConnection = async () =>
   await mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "guitar9994bagel",
-    database: "idle",
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PW,
+    database: process.env.DB_DATABASE,
   });
 
 const executeStoredProc = async (sql) => {
